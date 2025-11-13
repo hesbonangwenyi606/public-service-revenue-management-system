@@ -1,0 +1,1 @@
+*/5 * * * * root /opt/psrm/scripts/check_oracle.sh >/dev/null 2>&1
