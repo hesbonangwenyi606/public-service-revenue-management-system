@@ -11,7 +11,6 @@ def payments():
     data = request.get_json(force=True)
     transaction_id = 'TX-' + uuid.uuid4().hex[:12]
     status = random.choice(['SUCCESS', 'FAILED', 'PENDING'])
-    # In a real app we'd persist to DB. Here we just return a JSON response.
     resp = {
         "transaction_id": transaction_id,
         "status": status,
