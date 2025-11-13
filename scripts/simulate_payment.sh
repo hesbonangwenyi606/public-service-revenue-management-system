@@ -1,31 +1,29 @@
 #!/usr/bin/env bash
-# simulate_payment.sh
-set -euo pipefail
+# display_payments.sh
+LOG_FILE="/opt/psrm/logs/payment_status.log"
 
-# Default URL and amount
-URL=${1:-http://127.0.0.1:5000/api/payments}
-AMOUNT=${2:-100.50}
+# ANSI color codes
+GREEN="\033[92m"
+RED="\033[91m"
+YELLOW="\033[93m"
+RESET="\033[0m"
 
-# Build JSON payload
-PAYLOAD=$(cat <<JSON
-{
-  "payer_id": "TP-$(date +%s)",
-  "amount": ${AMOUNT},
-  "method": "card",
-  "invoice": "INV-$(date +%Y%m%d%H%M%S)"
-}
-JSON
-)
+echo "[3] Latest payment log entries (colored):"
+echo "--------------------------------------------------"
+echo -e "Timestamp                 Transaction ID  Status"
+echo "--------------------------------------------------"
 
-RESPONSE_FILE="/tmp/psrm_payment_response.json"
+while read -r line; do
+    ts=$(echo "$line" | awk '{print $1}')
+    tx=$(echo "$line" | awk '{print $2}')
+    status=$(echo "$line" | awk '{print $3}')
+    case $status in
+        COMPLETED) color=$GREEN ;;
+        FAILED) color=$RED ;;
+        PENDING) color=$YELLOW ;;
+        *) color=$RESET ;;
+    esac
+    echo -e "$ts      $tx ${color}$status${RESET}"
+done < "$LOG_FILE"
 
-# Send POST request
-curl -s -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$URL" -o "$RESPONSE_FILE"
-
-# Parse response
-if [[ -s "$RESPONSE_FILE" ]]; then
-  python3 /opt/psrm/scripts/payment_parser.py "$RESPONSE_FILE"
-  echo "Response saved to $RESPONSE_FILE"
-else
-  echo "No response or empty response from $URL"
-fi
+echo "--------------------------------------------------"
