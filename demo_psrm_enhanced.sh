@@ -45,33 +45,28 @@ curl -k "$HOST/health" | jq .
 echo
 sleep 1
 
-# Function to display a progress bar
-show_progress() {
-    local duration=$1
-    local elapsed=0
-    local bar_length=30
-    while [ $elapsed -le $duration ]; do
-        percent=$((elapsed * 100 / duration))
-        filled=$((elapsed * bar_length / duration))
-        empty=$((bar_length - filled))
-        printf "\r["
-        for ((i=0;i<filled;i++)); do printf "#"; done
-        for ((i=0;i<empty;i++)); do printf "-"; done
-        printf "] %d%%" "$percent"
-        sleep 1
-        ((elapsed++))
+# Function to show a spinning progress indicator
+spinner() {
+    local pid=$1
+    local spin_chars='|/-\'
+    local i=0
+    while kill -0 "$pid" 2>/dev/null; do
+        i=$(( (i+1) %4 ))
+        printf "\r[%c] Processing..." "${spin_chars:$i:1}"
+        sleep 0.2
     done
-    echo
+    printf "\r[✓] Payment completed!   \n"
 }
 
-# 2) Simulate multiple payments with progress bar
+# 2) Simulate multiple payments with live progress
 echo "[2] Simulating payments..."
 PAYMENTS=(50.00 75.00 120.50 250.00)
 for amt in "${PAYMENTS[@]}"; do
     echo "Simulating payment: $amt"
-    # Run the payment in background
+    # Run the payment request in background
     sudo -u psrm_admin /opt/psrm/scripts/simulate_payment.sh "$API_URL" "$amt" &
-    show_progress 3  # 3-second progress bar for each payment
+    pid=$!
+    spinner "$pid"  # show spinner until background job finishes
 done
 echo
 
