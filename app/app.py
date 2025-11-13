@@ -1,4 +1,3 @@
-# Simple Flask app to simulate PSRM payment API
 from flask import Flask, request, jsonify
 import uuid
 import random
@@ -28,5 +27,4 @@ def health():
     }), 200
 
 if __name__ == '__main__':
-    # Run on all interfaces so scripts can reach it via 127.0.0.1 or local network
     app.run(host='0.0.0.0', port=5000)
