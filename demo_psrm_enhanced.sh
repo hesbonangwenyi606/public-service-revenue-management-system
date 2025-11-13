@@ -1,29 +1,35 @@
 #!/bin/bash
 
-# Color codes
-GREEN="\e[32m"
-RED="\e[31m"
-YELLOW="\e[33m"
-RESET="\e[0m"
 
-# Path to your log file
+# Use printf for reliable color output
+GREEN="\033[0;32m"
+RED="\033[0;31m"
+YELLOW="\033[1;33m"
+RESET="\033[0m"
+
 LOG_FILE="/opt/psrm/logs/payment_status.log"
 
-# Show the latest 10 log entries with colors
-echo "[3] Latest payment log entries (colored):"
+echo -e "[3] Latest payment log entries (colored):"
 echo "--------------------------------------------------"
 echo "Timestamp                 Transaction ID  Status"
 echo "--------------------------------------------------"
 
 sudo tail -n 10 "$LOG_FILE" | while read -r line; do
     status=$(echo "$line" | awk '{print $3}')
-    if [ "$status" = "COMPLETED" ]; then
-        echo -e "${GREEN}$line${RESET}"
-    elif [ "$status" = "FAILED" ]; then
-        echo -e "${RED}$line${RESET}"
-    else
-        echo -e "${YELLOW}$line${RESET}"
-    fi
+    case "$status" in
+        COMPLETED)
+            printf "${GREEN}%s${RESET}\n" "$line"
+            ;;
+        FAILED)
+            printf "${RED}%s${RESET}\n" "$line"
+            ;;
+        PENDING)
+            printf "${YELLOW}%s${RESET}\n" "$line"
+            ;;
+        *)
+            printf "%s\n" "$line"
+            ;;
+    esac
 done
 
 echo "--------------------------------------------------"
