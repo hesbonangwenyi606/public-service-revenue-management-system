@@ -1,35 +1,31 @@
 #!/bin/bash
 
+# -----------------------------
+# backup_db.sh
+# -----------------------------
+# Exports Oracle schema PSRM_DB to /opt/psrm/backups/
+# Logs activities to /opt/psrm/logs/backup.log
+# -----------------------------
 
-# Use printf for reliable color output
-GREEN="\033[0;32m"
-RED="\033[0;31m"
-YELLOW="\033[1;33m"
-RESET="\033[0m"
+# Set Oracle environment (adjust ORACLE_HOME and ORACLE_SID)
+export ORACLE_HOME=/opt/oracle/product/19c/dbhome_1
+export PATH=$ORACLE_HOME/bin:$PATH
+export ORACLE_SID=XE
 
-LOG_FILE="/opt/psrm/logs/payment_status.log"
+BACKUP_DIR="/opt/psrm/backups"
+LOG_FILE="/opt/psrm/logs/backup.log"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+DUMP_FILE="$BACKUP_DIR/psrm_db_$TIMESTAMP.dmp"
 
-echo -e "[3] Latest payment log entries (colored):"
-echo "--------------------------------------------------"
-echo "Timestamp                 Transaction ID  Status"
-echo "--------------------------------------------------"
+# Ensure backup directory exists
+mkdir -p "$BACKUP_DIR"
 
-sudo tail -n 10 "$LOG_FILE" | while read -r line; do
-    status=$(echo "$line" | awk '{print $3}')
-    case "$status" in
-        COMPLETED)
-            printf "${GREEN}%s${RESET}\n" "$line"
-            ;;
-        FAILED)
-            printf "${RED}%s${RESET}\n" "$line"
-            ;;
-        PENDING)
-            printf "${YELLOW}%s${RESET}\n" "$line"
-            ;;
-        *)
-            printf "%s\n" "$line"
-            ;;
-    esac
-done
+# Perform the export using expdp
+# Replace PSRM_DB/password with actual username/password
+expdp PSRM_DB/password@XE schemas=PSRM_DB directory=DATA_PUMP_DIR dumpfile=$(basename "$DUMP_FILE") logfile=backup_$TIMESTAMP.log
 
-echo "--------------------------------------------------"
+if [ $? -eq 0 ]; then
+    echo "$(date '+%F %T') - Backup successful: $DUMP_FILE" >> "$LOG_FILE"
+else
+    echo "$(date '+%F %T') - Backup FAILED!" >> "$LOG_FILE"
+fi

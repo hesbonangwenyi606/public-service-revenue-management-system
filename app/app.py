@@ -1,6 +1,7 @@
 # Simple Flask app to simulate PSRM payment API
 from flask import Flask, request, jsonify
 import uuid, random, datetime
+
 app = Flask(__name__)
 
 @app.route('/api/payments', methods=['POST'])
@@ -19,7 +20,11 @@ def payments():
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({"status":"ok","service":"psrm-flask","time": datetime.datetime.utcnow().isoformat() }), 200
+    return jsonify({
+        "status": "ok",
+        "service": "psrm-flask",
+        "time": datetime.datetime.utcnow().isoformat()
+    }), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
