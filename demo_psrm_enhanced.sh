@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# Demo PSRM Script (Enhanced) - works for your user without switching manually
-
-# Determine host
+# Determine host URL
 if ping -c 1 psrm.local &>/dev/null; then
     HOST="https://psrm.local"
 else
@@ -11,7 +9,24 @@ else
 fi
 
 API_URL="$HOST/api/payments"
-LOG_FILE="/opt/psrm/logs/payment_status.log"
+LOG_DIR="/opt/psrm/logs"
+LOG_FILE="$LOG_DIR/payment_status.log"
+
+# Ensure logs directory exists with correct ownership and permissions
+if [ ! -d "$LOG_DIR" ]; then
+    echo "[i] Creating logs directory: $LOG_DIR"
+    sudo mkdir -p "$LOG_DIR"
+    sudo chown psrm_admin:psrm_admin "$LOG_DIR"
+    sudo chmod 750 "$LOG_DIR"
+fi
+
+# Ensure payment log file exists
+if [ ! -f "$LOG_FILE" ]; then
+    echo "[i] Creating payment log file: $LOG_FILE"
+    sudo touch "$LOG_FILE"
+    sudo chown psrm_admin:psrm_admin "$LOG_FILE"
+    sudo chmod 660 "$LOG_FILE"
+fi
 
 echo "===================================="
 echo "  PSRM Demo Script (Enhanced Version)"
@@ -24,27 +39,24 @@ curl -k "$HOST/health" | jq .
 echo
 sleep 1
 
-# 2) Simulate multiple payments
+# 2) Simulate multiple payments with delays
 echo "[2] Simulating payments..."
 PAYMENTS=(50.00 75.00 120.50 250.00)
 for amt in "${PAYMENTS[@]}"; do
     echo "Simulating payment: $amt"
-    # Run simulate_payment.sh as psrm_admin internally
-    sudo -u psrm_admin bash -c "/opt/psrm/scripts/simulate_payment.sh $API_URL $amt"
+    # Run the payment simulation as psrm_admin
+    sudo -u psrm_admin /opt/psrm/scripts/simulate_payment.sh "$API_URL" "$amt"
     sleep 2
 done
 echo
 
-# 3) Display latest 5 payment log entries
+# 3) Display the latest 5 payment log entries
 echo "[3] Latest payment log entries:"
 echo "--------------------------------------------------"
 printf "%-25s %-15s %-10s\n" "Timestamp" "Transaction ID" "Status"
 echo "--------------------------------------------------"
-if sudo test -f "$LOG_FILE"; then
-    sudo tail -n 5 "$LOG_FILE" | awk -F'\t' '{printf "%-25s %-15s %-10s\n", $1, $2, $3}'
-else
-    echo "[!] Payment log not found: $LOG_FILE"
-fi
+# Read the log using sudo to ensure access
+sudo -u psrm_admin tail -n 5 "$LOG_FILE" | awk -F'\t' '{printf "%-25s %-15s %-10s\n", $1, $2, $3}'
 echo "--------------------------------------------------"
 echo
 echo "=== Demo Complete ==="
